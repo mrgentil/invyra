@@ -4,10 +4,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useQueryClient } from "@tanstack/react-query";
 import { colors } from "@/theme/colors";
 import { typography } from "@/theme/typography";
 import { radius } from "@/theme/radius";
 import { shadows } from "@/theme/shadows";
+import { QUERY_KEYS } from "@/constants";
 import { PaymentCard } from "@/components/cards/PaymentCard";
 import { Price } from "@/components/ui/Price";
 import { SectionTitle } from "@/components/ui/SectionTitle";
@@ -15,12 +17,17 @@ import { SubScreenHeader } from "@/components/ui/SubScreenHeader";
 import { GradientButton } from "@/components/ui/GradientButton";
 import { SuccessModal } from "@/components/modals/SuccessModal";
 import { FailedModal } from "@/components/modals/FailedModal";
-import { getEventById } from "@/services/mockData";
+import { useEvent } from "@/hooks";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { completePaymentInSupabase } from "@/services/supabase/tickets";
+import { useAuthStore } from "@/store";
 import { formatPrice } from "@/utils";
 
 export default function PaymentScreen() {
-  const { id, amount, qty } = useLocalSearchParams<{ id: string; amount: string; qty: string }>();
-  const event = getEventById(id!);
+  const { id, amount, qty, bookingId } = useLocalSearchParams<{ id: string; amount: string; qty: string; bookingId?: string }>();
+  const { data: event } = useEvent(id);
+  const userId = useAuthStore((state) => state.user?.id);
+  const queryClient = useQueryClient();
   const [selectedMethod, setSelectedMethod] = useState<string>("");
   const [selectedMobileProvider, setSelectedMobileProvider] = useState<string>("");
   const [showSuccess, setShowSuccess] = useState(false);
@@ -47,18 +54,39 @@ export default function PaymentScreen() {
   const requiresMobileProvider = selectedMethod === "mobile-money";
   const canPay = Boolean(selectedMethod) && (!requiresMobileProvider || Boolean(selectedMobileProvider));
 
-  const handlePayment = () => {
-    if (!canPay) return;
+  const handlePayment = async () => {
+    if (!canPay || !event) return;
     setProcessing(true);
-    setTimeout(() => {
-      setProcessing(false);
+
+    try {
+      if (isSupabaseConfigured() && bookingId) {
+        await completePaymentInSupabase({
+          bookingId,
+          userId,
+          amount: Number(amount) || 0,
+          method: selectedMethod,
+          provider: selectedMobileProvider || undefined,
+          eventId: event.id,
+          quantity: Number(qty || 1),
+          unitPrice: event.price,
+        });
+        await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tickets] });
+        setShowSuccess(true);
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       const success = Math.random() > 0.3;
       if (success) {
         setShowSuccess(true);
       } else {
         setShowFailed(true);
       }
-    }, 2000);
+    } catch {
+      setShowFailed(true);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (

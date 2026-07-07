@@ -9,7 +9,7 @@ import { typography } from "@/theme/typography";
 import { shadows } from "@/theme/shadows";
 import { useFilterStore } from "@/store";
 import { BottomSheet } from "@/components/modals/BottomSheet";
-import { categories } from "@/services/mockData";
+import { useCategories } from "@/hooks";
 import { formatPrice } from "@/utils";
 
 interface FilterBottomSheetProps {
@@ -58,6 +58,7 @@ function countActiveFilters(filters: ReturnType<typeof useFilterStore.getState>[
 
 export function FilterBottomSheet({ visible, onClose, onApply }: FilterBottomSheetProps) {
   const { filters, setFilters, resetFilters } = useFilterStore();
+  const { data: categories = [] } = useCategories();
   const [priceValue, setPriceValue] = useState(filters.priceRange?.[1] ?? 500);
   const [distanceValue, setDistanceValue] = useState(filters.distance ?? 50);
 

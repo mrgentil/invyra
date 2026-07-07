@@ -1,16 +1,20 @@
-import { View, Text, ScrollView, TouchableOpacity, Switch } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Switch, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useQueryClient } from "@tanstack/react-query";
 import { colors } from "@/theme/colors";
 import { typography } from "@/theme/typography";
 import { radius } from "@/theme/radius";
 import { shadows } from "@/theme/shadows";
+import { QUERY_KEYS } from "@/constants";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { LocationSelector } from "@/components/ui/LocationSelector";
-import { useThemeStore, useOnboardingStore, useFavoritesStore } from "@/store";
-import { getUserTickets, users } from "@/services/mockData";
+import { useThemeStore, useOnboardingStore, useFavoritesStore, useAuthStore } from "@/store";
+import { useUserTickets } from "@/hooks";
+
+const GUEST_AVATAR = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
 
 const menuItems = [
   { icon: "heart-outline" as const, label: "Favoris", subtitle: "Événements sauvegardés", route: "/favorites", color: "#FF4D4F" },
@@ -96,12 +100,47 @@ export default function ProfileScreen() {
   const { isDark, toggleTheme } = useThemeStore();
   const resetOnboarding = useOnboardingStore((state) => state.reset);
   const favoritesCount = useFavoritesStore((state) => state.favorites.length);
-  const user = users[0];
-  const ticketCount = getUserTickets().filter((ticket) => ticket.status === "active").length;
+  const authUser = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const logout = useAuthStore((state) => state.logout);
+  const queryClient = useQueryClient();
+  const userId = authUser?.id;
+  const { data: tickets = [] } = useUserTickets(userId);
+  const ticketCount = tickets.filter((ticket) => ticket.status === "active").length;
+
+  const profileName = isAuthenticated && authUser ? authUser.name : "Invité";
+  const profileEmail = isAuthenticated && authUser ? authUser.email : "Connectez-vous pour synchroniser vos billets";
+  const profileAvatar = isAuthenticated && authUser?.avatar ? authUser.avatar : GUEST_AVATAR;
+  const preferencesCount = isAuthenticated && authUser ? authUser.preferences.length : 0;
 
   const handleResetOnboarding = async () => {
     await resetOnboarding();
     router.replace("/onboarding");
+  };
+
+  const handleLogout = () => {
+    Alert.alert("Déconnexion", "Voulez-vous vraiment vous déconnecter ?", [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Déconnexion",
+        style: "destructive",
+        onPress: async () => {
+          await logout();
+          await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tickets] });
+          await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.events] });
+          await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.categories] });
+          await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.user] });
+        },
+      },
+    ]);
+  };
+
+  const handleEditProfile = () => {
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+      return;
+    }
+    router.push("/edit-profile");
   };
 
   return (
@@ -119,7 +158,7 @@ export default function ProfileScreen() {
             </View>
             <TouchableOpacity
               activeOpacity={0.82}
-              onPress={() => router.push("/edit-profile")}
+              onPress={handleEditProfile}
               style={{
                 width: 48,
                 height: 48,
@@ -149,7 +188,7 @@ export default function ProfileScreen() {
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <View style={{ position: "relative" }}>
                 <Image
-                  source={{ uri: user.avatar }}
+                  source={{ uri: profileAvatar }}
                   style={{
                     width: 76,
                     height: 76,
@@ -190,16 +229,16 @@ export default function ProfileScreen() {
                   }}
                 >
                   <Text style={{ fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.xs, color: colors.primary.DEFAULT }}>
-                    Membre Invyra
+                    {isAuthenticated ? "Membre Invyra" : "Mode invité"}
                   </Text>
                 </View>
                 <Text style={{ fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.xl, color: colors.text.primary }} numberOfLines={1}>
-                  {user.name}
+                  {profileName}
                 </Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 5 }}>
                   <Ionicons name="mail-outline" size={13} color={colors.text.secondary} />
                   <Text style={{ fontFamily: typography.fontFamily.regular, fontSize: typography.fontSize.sm, color: colors.text.secondary, flex: 1 }} numberOfLines={1}>
-                    {user.email}
+                    {profileEmail}
                   </Text>
                 </View>
                 <LocationSelector variant="compact" />
@@ -210,7 +249,7 @@ export default function ProfileScreen() {
               {[
                 { label: "Billets", value: ticketCount, icon: "ticket-outline" as const, tint: colors.primary.DEFAULT },
                 { label: "Favoris", value: favoritesCount, icon: "heart-outline" as const, tint: "#FF4D4F" },
-                { label: "Envies", value: user.preferences.length, icon: "sparkles-outline" as const, tint: colors.secondary.DEFAULT },
+                { label: "Envies", value: preferencesCount, icon: "sparkles-outline" as const, tint: colors.secondary.DEFAULT },
               ].map((stat) => (
                 <View
                   key={stat.label}
@@ -272,7 +311,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {user.preferences.length > 0 && (
+        {isAuthenticated && authUser && authUser.preferences.length > 0 && (
           <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
             <SectionTitle title="Vos envies" subtitle="Ce qui vous inspire" accentColor={colors.secondary.DEFAULT} />
             <View
@@ -288,7 +327,7 @@ export default function ProfileScreen() {
                 shadows.sm,
               ]}
             >
-              {user.preferences.map((preference) => (
+              {authUser.preferences.map((preference: string) => (
                 <View
                   key={preference}
                   style={{
@@ -408,67 +447,72 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
             </TouchableOpacity>
 
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border.light }}>
-              <TouchableOpacity
-                activeOpacity={0.82}
-                onPress={() => router.push("/auth/login")}
-                style={{
-                  flex: 1,
-                  height: 42,
-                  borderRadius: radius.full,
-                  backgroundColor: colors.text.primary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text style={{ fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.xs, color: colors.white }}>
-                  Se connecter
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.82}
-                onPress={() => router.push("/auth/register")}
-                style={{
-                  flex: 1,
-                  height: 42,
-                  borderRadius: radius.full,
-                  backgroundColor: colors.background.light,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: colors.border.light,
-                }}
-              >
-                <Text style={{ fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.xs, color: colors.text.primary }}>
-                  S'inscrire
-                </Text>
-              </TouchableOpacity>
-            </View>
+            {!isAuthenticated && (
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border.light }}>
+                <TouchableOpacity
+                  activeOpacity={0.82}
+                  onPress={() => router.push("/auth/login")}
+                  style={{
+                    flex: 1,
+                    height: 42,
+                    borderRadius: radius.full,
+                    backgroundColor: colors.text.primary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.xs, color: colors.white }}>
+                    Se connecter
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.82}
+                  onPress={() => router.push("/auth/register")}
+                  style={{
+                    flex: 1,
+                    height: 42,
+                    borderRadius: radius.full,
+                    backgroundColor: colors.background.light,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 1,
+                    borderColor: colors.border.light,
+                  }}
+                >
+                  <Text style={{ fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.xs, color: colors.text.primary }}>
+                    S'inscrire
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
 
-        <TouchableOpacity
-          activeOpacity={0.82}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            marginTop: 20,
-            marginHorizontal: 20,
-            paddingVertical: 16,
-            backgroundColor: colors.white,
-            borderRadius: radius.full,
-            borderWidth: 1,
-            borderColor: colors.danger[100],
-            ...shadows.sm,
-          }}
-        >
-          <Ionicons name="log-out-outline" size={20} color={colors.danger.DEFAULT} />
-          <Text style={{ fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.md, color: colors.danger.DEFAULT }}>
-            Déconnexion
-          </Text>
-        </TouchableOpacity>
+        {isAuthenticated && (
+          <TouchableOpacity
+            activeOpacity={0.82}
+            onPress={handleLogout}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              marginTop: 20,
+              marginHorizontal: 20,
+              paddingVertical: 16,
+              backgroundColor: colors.white,
+              borderRadius: radius.full,
+              borderWidth: 1,
+              borderColor: colors.danger[100],
+              ...shadows.sm,
+            }}
+          >
+            <Ionicons name="log-out-outline" size={20} color={colors.danger.DEFAULT} />
+            <Text style={{ fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.md, color: colors.danger.DEFAULT }}>
+              Déconnexion
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </View>
   );

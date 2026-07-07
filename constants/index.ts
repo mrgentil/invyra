@@ -1,5 +1,7 @@
 export const API_BASE_URL = "https://api.invyra.com/v1";
 export const API_TIMEOUT = 30000;
+export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
+export const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 export const PAGE_SIZE = 20;
 export const DEBOUNCE_DELAY = 300;
 export const ANIMATION_DURATION = {

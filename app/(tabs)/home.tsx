@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect, useMemo } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -23,9 +23,18 @@ import { SectionTitle } from "@/components/ui/SectionTitle";
 import { CategoryChip } from "@/components/ui/CategoryChip";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { LocationSelector } from "@/components/ui/LocationSelector";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { EventCardLarge } from "@/components/cards/EventCardLarge";
 import { EditorialSection } from "@/components/home";
-import { categories, getFeaturedEvents, getUpcomingEvents, getNearbyEvents, getPopularEvents, getTrendingEvents } from "@/services/mockData";
+import {
+  useCategories,
+  useFeaturedEvents,
+  useNearbyEvents,
+  usePopularEvents,
+  useTrendingEvents,
+  useUpcomingEvents,
+} from "@/hooks";
 import { useLocationStore } from "@/store";
 import { formatDate, formatPrice } from "@/utils";
 import { Event } from "@/types";
@@ -143,12 +152,31 @@ export default function HomeScreen() {
   const [heroIndex, setHeroIndex] = useState(0);
   const selectedCityId = useLocationStore((state) => state.selectedId);
 
-  const featured = useMemo(() => getFeaturedEvents(selectedCityId), [selectedCityId]);
-  const upcoming = useMemo(() => getUpcomingEvents(selectedCityId), [selectedCityId]);
-  const nearby = useMemo(() => getNearbyEvents(selectedCityId), [selectedCityId]);
-  const popular = useMemo(() => getPopularEvents(selectedCityId), [selectedCityId]);
-  const trending = useMemo(() => getTrendingEvents(selectedCityId), [selectedCityId]);
+  const featuredQuery = useFeaturedEvents(selectedCityId);
+  const upcomingQuery = useUpcomingEvents(selectedCityId);
+  const nearbyQuery = useNearbyEvents(selectedCityId);
+  const popularQuery = usePopularEvents(selectedCityId);
+  const trendingQuery = useTrendingEvents(selectedCityId);
+  const { data: categories = [] } = useCategories();
+
+  const featured = featuredQuery.data ?? [];
+  const upcoming = upcomingQuery.data ?? [];
+  const nearby = nearbyQuery.data ?? [];
+  const popular = popularQuery.data ?? [];
+  const trending = trendingQuery.data ?? [];
   const heroEvents = featured.length > 0 ? featured.slice(0, 5) : popular.slice(0, 5);
+  const eventsFailed =
+    featuredQuery.isError || popularQuery.isError || trendingQuery.isError || upcomingQuery.isError;
+  const eventsLoading =
+    featuredQuery.isLoading || popularQuery.isLoading || trendingQuery.isLoading || upcomingQuery.isLoading;
+
+  const retryEvents = useCallback(() => {
+    featuredQuery.refetch();
+    upcomingQuery.refetch();
+    nearbyQuery.refetch();
+    popularQuery.refetch();
+    trendingQuery.refetch();
+  }, [featuredQuery, nearbyQuery, popularQuery, trendingQuery, upcomingQuery]);
 
   const handleSearch = useCallback(() => {
     router.push("/(tabs)/discover");
@@ -253,6 +281,23 @@ export default function HomeScreen() {
             placeholder="Concert, expo, soirée..."
           />
         </View>
+
+        {!eventsLoading && eventsFailed && heroEvents.length === 0 && (
+          <ErrorState
+            message="Impossible de charger les événements. Vérifiez votre connexion puis réessayez."
+            onRetry={retryEvents}
+          />
+        )}
+
+        {!eventsLoading && !eventsFailed && heroEvents.length === 0 && (
+          <EmptyState
+            icon="calendar-outline"
+            title="Aucun événement ici"
+            message="Essayez « Toute la RDC » dans le sélecteur de ville en haut."
+            actionLabel="Voir toute la RDC"
+            onAction={() => useLocationStore.getState().setLocation("all")}
+          />
+        )}
 
         {heroEvents.length > 0 && (
           <View style={{ marginTop: 20 }}>

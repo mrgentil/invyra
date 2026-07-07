@@ -9,7 +9,8 @@ import { radius } from "@/theme/radius";
 import { shadows } from "@/theme/shadows";
 import { TicketCard } from "@/components/cards/TicketCard";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { getUserTickets } from "@/services/mockData";
+import { useUserTickets } from "@/hooks";
+import { useAuthStore } from "@/store";
 import { Ticket } from "@/types";
 
 type FilterType = "all" | "active" | "used" | "expired";
@@ -23,7 +24,8 @@ const FILTERS: { key: FilterType; label: string; icon: keyof typeof Ionicons.gly
 
 export default function TicketsScreen() {
   const [filter, setFilter] = useState<FilterType>("all");
-  const allTickets = getUserTickets();
+  const userId = useAuthStore((state) => state.user?.id);
+  const { data: allTickets = [] } = useUserTickets(userId);
 
   const filteredTickets = useMemo(() => {
     if (filter === "all") return allTickets;

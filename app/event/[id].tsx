@@ -18,7 +18,8 @@ import { OrganizerCard } from "@/components/cards/OrganizerCard";
 import { Gallery } from "@/components/cards/Gallery";
 import { GradientButton } from "@/components/ui/GradientButton";
 import { SocialShareSheet } from "@/components/modals/SocialShareSheet";
-import { getEventById } from "@/services/mockData";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { useEvent } from "@/hooks";
 import { useFavoritesStore } from "@/store";
 import { formatNumber } from "@/utils";
 
@@ -28,7 +29,7 @@ const SCREEN_BG = "#F2F4F8";
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const event = getEventById(id!);
+  const { data: event, isLoading } = useEvent(id);
   const { isFavorite, toggleFavorite } = useFavoritesStore();
   const [showShare, setShowShare] = useState(false);
   const scrollOffset = useRef(new Animated.Value(0)).current;
@@ -49,6 +50,15 @@ export default function EventDetailScreen() {
     outputRange: [1, 0],
     extrapolate: "clamp",
   });
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: SCREEN_BG }}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <LoadingState message="Chargement de l'événement..." />
+      </View>
+    );
+  }
 
   if (!event) {
     return (

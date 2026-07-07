@@ -1,24 +1,30 @@
-import { useMemo } from "react";
 import { View, FlatList } from "react-native";
 import { router, Stack } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import { EventCardLarge } from "@/components/cards/EventCardLarge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SubScreenHeader } from "@/components/ui/SubScreenHeader";
-import { getEventById, getPopularEvents } from "@/services/mockData";
+import { getEventById, getPopularEvents } from "@/services";
 import { useFavoritesStore } from "@/store";
 import { Event } from "@/types";
 
 export default function FavoritesScreen() {
   const favorites = useFavoritesStore((state) => state.favorites);
-  const suggestions = getPopularEvents().slice(0, 4);
 
-  const favoriteEvents = useMemo(
-    () =>
-      favorites
-        .map((id) => getEventById(id))
-        .filter((event): event is Event => Boolean(event)),
-    [favorites]
-  );
+  const { data: favoriteEvents = [] } = useQuery({
+    queryKey: ["favorites", favorites],
+    queryFn: async () => {
+      const events = await Promise.all(favorites.map((id) => getEventById(id)));
+      return events.filter((event): event is Event => Boolean(event));
+    },
+    enabled: favorites.length > 0,
+  });
+
+  const { data: suggestions = [] } = useQuery({
+    queryKey: ["favorites", "suggestions"],
+    queryFn: () => getPopularEvents(),
+    enabled: favoriteEvents.length === 0,
+  });
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F2F4F8" }}>

@@ -13,7 +13,7 @@ import { CategoryChip } from "@/components/ui/CategoryChip";
 import { EventCardSmall } from "@/components/cards/EventCardSmall";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FilterBottomSheet } from "@/components/modals/FilterBottomSheet";
-import { categories, getEvents } from "@/services/mockData";
+import { useEvents, useCategories } from "@/hooks";
 import { useFilterStore, useLocationStore } from "@/store";
 import { Event } from "@/types";
 
@@ -40,13 +40,16 @@ export default function DiscoverScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(params.category);
   const { filters, isVisible, showFilters, hideFilters } = useFilterStore();
   const selectedCityId = useLocationStore((state) => state.selectedId);
+  const { data: categories = [] } = useCategories();
+  const { data: events = [] } = useEvents({
+    category: selectedCategory ?? filters.category,
+    search: searchQuery || undefined,
+    cityId: selectedCityId,
+    limit: 50,
+  });
 
   const filteredEvents = useMemo(() => {
-    let result = getEvents({
-      category: selectedCategory ?? filters.category,
-      search: searchQuery || undefined,
-      cityId: selectedCityId,
-    });
+    let result = [...events];
 
     if (filters.priceRange) {
       result = result.filter(
@@ -88,7 +91,7 @@ export default function DiscoverScreen() {
     }
 
     return result;
-  }, [filters, quickFilter, searchQuery, selectedCategory, selectedCityId]);
+  }, [events, filters, quickFilter]);
 
   const handleApplyFilters = useCallback(() => {
     if (filters.category) {

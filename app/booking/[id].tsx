@@ -14,17 +14,30 @@ import { Price } from "@/components/ui/Price";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { SubScreenHeader } from "@/components/ui/SubScreenHeader";
 import { FailedModal } from "@/components/modals/FailedModal";
-import { getEventById } from "@/services/mockData";
+import { useEvent } from "@/hooks";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { createBookingInSupabase } from "@/services/supabase/tickets";
+import { useAuthStore } from "@/store";
 import { formatDate, formatPrice } from "@/utils";
 
 export default function BookingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const event = getEventById(id!);
+  const { data: event, isLoading } = useEvent(id);
+  const userId = useAuthStore((state) => state.user?.id);
   const [quantity, setQuantity] = useState(1);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [showFailed, setShowFailed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#F2F4F8" }}>
+        <Text style={{ fontFamily: typography.fontFamily.medium, color: colors.text.secondary }}>Chargement...</Text>
+      </View>
+    );
+  }
 
   if (!event) {
     return (
@@ -38,13 +51,42 @@ export default function BookingScreen() {
   const serviceFee = totalAmount > 0 ? 4 : 0;
   const finalAmount = totalAmount + serviceFee;
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     if (!fullName.trim() || !email.trim() || !phone.trim()) {
       setShowFailed(true);
       return;
     }
 
-    router.push(`/payment/${event.id}?amount=${finalAmount}&qty=${quantity}`);
+    setSubmitting(true);
+    try {
+      let bookingId: string | undefined;
+
+      if (isSupabaseConfigured()) {
+        bookingId = await createBookingInSupabase({
+          eventId: event.id,
+          userId,
+          guestName: fullName.trim(),
+          guestEmail: email.trim(),
+          guestPhone: phone.trim(),
+          quantity,
+          unitPrice: event.price,
+          serviceFee,
+          totalAmount: finalAmount,
+        });
+      }
+
+      const params = new URLSearchParams({
+        amount: String(finalAmount),
+        qty: String(quantity),
+      });
+      if (bookingId) params.set("bookingId", bookingId);
+
+      router.push(`/payment/${event.id}?${params.toString()}`);
+    } catch {
+      setShowFailed(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -249,7 +291,7 @@ export default function BookingScreen() {
             {formatPrice(finalAmount)}
           </Text>
         </View>
-        <GradientButton title="Continuer vers le paiement" onPress={handleProceed} fullWidth size="large" />
+        <GradientButton title="Continuer vers le paiement" onPress={handleProceed} fullWidth size="large" loading={submitting} />
       </View>
 
       <FailedModal

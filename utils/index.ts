@@ -81,6 +81,9 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+export { formatAuthError, isAuthCancellation } from "./authErrors";
+export { withTimeout, userFromAuthSession } from "./authSession";
+
 export function getRandomColor(): string {
   const colors = [
     "#3B82F6",
