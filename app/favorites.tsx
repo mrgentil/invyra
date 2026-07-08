@@ -6,16 +6,20 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SubScreenHeader } from "@/components/ui/SubScreenHeader";
 import { getEventById, getPopularEvents } from "@/services";
 import { useFavoritesStore } from "@/store";
+import { useLocationStore } from "@/store/useLocationStore";
 import { Event } from "@/types";
 
 export default function FavoritesScreen() {
   const favorites = useFavoritesStore((state) => state.favorites);
+  const selectedCityId = useLocationStore((state) => state.selectedId);
 
   const { data: favoriteEvents = [] } = useQuery({
-    queryKey: ["favorites", favorites],
+    queryKey: ["favorites", favorites, selectedCityId],
     queryFn: async () => {
       const events = await Promise.all(favorites.map((id) => getEventById(id)));
-      return events.filter((event): event is Event => Boolean(event));
+      const filtered = events.filter((event): event is Event => Boolean(event));
+      if (!selectedCityId || selectedCityId === "all") return filtered;
+      return filtered.filter((event) => event.location.cityId === selectedCityId);
     },
     enabled: favorites.length > 0,
   });

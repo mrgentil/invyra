@@ -8,6 +8,7 @@ import {
   signOutFromSupabase,
 } from "@/services/supabase/auth";
 import { userFromAuthSession, withTimeout } from "@/utils/authSession";
+import { useLocationStore } from "@/store/useLocationStore";
 
 interface AuthState {
   user: User | null;
@@ -74,6 +75,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         "Chargement du profil trop long."
       );
       set({ user: profile, token: session.access_token, isAuthenticated: true });
+
+      // Sync ville profil -> filtre events
+      if (profile.cityId) {
+        await useLocationStore.getState().setLocation(profile.cityId);
+      }
       return profile;
     } catch {
       return fallbackUser;
@@ -103,6 +109,9 @@ export const useAuthStore = create<AuthState>((set) => ({
             "profile timeout"
           );
           set({ user: profile, token: session.access_token, isAuthenticated: true });
+          if (profile.cityId) {
+            await useLocationStore.getState().setLocation(profile.cityId);
+          }
         } catch {
           // garde le profil issu de la session
         }

@@ -33,7 +33,13 @@
       "expo-secure-store",
       "expo-font",
       "expo-web-browser",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Invyra utilise votre position pour proposer des événements proches de vous."
+        }
+      ]
     ]
   }
 }

@@ -80,6 +80,7 @@ export interface User {
   avatar: string;
   bio?: string;
   location?: string;
+  cityId?: string;
   preferences: string[];
   tickets: Ticket[];
   favorites: string[];

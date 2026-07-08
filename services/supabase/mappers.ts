@@ -113,6 +113,7 @@ export function mapProfile(row: ProfileRow, email: string): User {
     phone: row.phone ?? "",
     avatar: row.avatar_url ?? "",
     location: row.city_label ?? undefined,
+    cityId: row.city_id ?? undefined,
     preferences: row.preferences ?? [],
     tickets: [],
     favorites: [],
