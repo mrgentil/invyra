@@ -86,17 +86,27 @@ export async function fetchProfileFromSupabase(userId: string, email: string): P
 
 export async function updateProfileInSupabase(
   userId: string,
-  updates: { name?: string; phone?: string; cityId?: string; cityLabel?: string }
+  updates: { name?: string; phone?: string; cityId?: string; cityLabel?: string; avatarUrl?: string }
 ) {
   const supabase = getSupabase();
+
+  const payload: Partial<{
+    name: string;
+    phone: string;
+    avatar_url: string;
+    city_id: string;
+    city_label: string;
+  }> = {};
+
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.phone !== undefined) payload.phone = updates.phone;
+  if (updates.avatarUrl !== undefined) payload.avatar_url = updates.avatarUrl;
+  if (updates.cityId !== undefined) payload.city_id = updates.cityId;
+  if (updates.cityLabel !== undefined) payload.city_label = updates.cityLabel;
+
   const { error } = await supabase
     .from("profiles")
-    .update({
-      name: updates.name,
-      phone: updates.phone,
-      city_id: updates.cityId,
-      city_label: updates.cityLabel,
-    })
+    .update(payload)
     .eq("id", userId);
 
   if (error) throw error;

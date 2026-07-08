@@ -188,6 +188,7 @@ export default function ProfileScreen() {
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <View style={{ position: "relative" }}>
                 <Image
+                  key={profileAvatar}
                   source={{ uri: profileAvatar }}
                   style={{
                     width: 76,
@@ -197,6 +198,7 @@ export default function ProfileScreen() {
                     borderColor: colors.primary[100],
                   }}
                   contentFit="cover"
+                  cachePolicy="none"
                 />
                 <View
                   style={{

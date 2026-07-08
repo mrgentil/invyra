@@ -14,6 +14,7 @@ interface InputProps {
   secureTextEntry?: boolean;
   keyboardType?: "default" | "email-address" | "numeric" | "phone-pad";
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  editable?: boolean;
   style?: object;
 }
 
@@ -28,6 +29,7 @@ export function Input({
   secureTextEntry = false,
   keyboardType = "default",
   autoCapitalize = "none",
+  editable = true,
   style,
 }: InputProps) {
   return (
@@ -54,6 +56,7 @@ export function Input({
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
+        editable={editable}
         style={{
           backgroundColor: colors.card.light,
           borderRadius: radius.input,

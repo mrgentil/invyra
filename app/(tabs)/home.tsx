@@ -36,6 +36,7 @@ import {
   useUpcomingEvents,
 } from "@/hooks";
 import { useLocationStore } from "@/store";
+import { useAuthStore } from "@/store/useAuthStore";
 import { formatDate, formatPrice } from "@/utils";
 import { Event } from "@/types";
 
@@ -151,6 +152,9 @@ export default function HomeScreen() {
   const heroListRef = useRef<FlatList<Event>>(null);
   const [heroIndex, setHeroIndex] = useState(0);
   const selectedCityId = useLocationStore((state) => state.selectedId);
+  const authUser = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const headerAvatar = isAuthenticated && authUser?.avatar ? authUser.avatar : "";
 
   const featuredQuery = useFeaturedEvents(selectedCityId);
   const upcomingQuery = useUpcomingEvents(selectedCityId);
@@ -268,7 +272,17 @@ export default function HomeScreen() {
                   ...shadows.sm,
                 }}
               >
-                <Ionicons name="person-outline" size={21} color={colors.white} />
+                {headerAvatar ? (
+                  <Image
+                    key={headerAvatar}
+                    source={{ uri: headerAvatar }}
+                    style={{ width: 46, height: 46, borderRadius: 23 }}
+                    contentFit="cover"
+                    cachePolicy="none"
+                  />
+                ) : (
+                  <Ionicons name="person-outline" size={21} color={colors.white} />
+                )}
               </TouchableOpacity>
             </View>
           </View>

@@ -42,7 +42,10 @@ export function useSocialAuth() {
           message.toLowerCase().includes("localhost") ||
           message.toLowerCase().includes("page") ||
           message.toLowerCase().includes("redirect") ||
-          message.toLowerCase().includes("url");
+          message.toLowerCase().includes("url") ||
+          message.toLowerCase().includes("unexpected_failure") ||
+          message.toLowerCase().includes("requested path") ||
+          message.toLowerCase().includes("supabase");
 
         const fullMessage = needsRedirectHelp
           ? `${message}\n\n${getOAuthSetupHint(redirectUri)}`

@@ -9,6 +9,7 @@ import { AuthLayout, AuthDivider, SocialAuthButtons, AuthSubmitButton, AuthError
 import { useSocialAuth } from "@/hooks/useSocialAuth";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { signInWithEmail } from "@/services/supabase/auth";
+import { getOAuthRedirectUri } from "@/services/supabase/oauth";
 import { useAuthStore } from "@/store/useAuthStore";
 import { formatAuthError } from "@/utils/authErrors";
 import { withTimeout } from "@/utils/authSession";
@@ -102,6 +103,22 @@ export default function LoginScreen() {
         }
       >
         {displayError ? <AuthErrorBanner message={displayError} onDismiss={clearErrors} /> : null}
+
+        {__DEV__ ? (
+          <Text
+            selectable
+            style={{
+              fontFamily: typography.fontFamily.regular,
+              fontSize: 10,
+              lineHeight: 14,
+              color: "rgba(255,255,255,0.45)",
+              marginBottom: 8,
+            }}
+          >
+            OAuth redirect (copier dans Supabase) :{"\n"}
+            {getOAuthRedirectUri()}
+          </Text>
+        ) : null}
 
         <SocialAuthButtons
           onGoogle={signInGoogle}
