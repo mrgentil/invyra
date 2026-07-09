@@ -81,6 +81,11 @@ export async function fetchProfileFromSupabase(userId: string, email: string): P
     };
   }
 
+  if (data.status === "suspended") {
+    await signOutFromSupabase();
+    throw new Error("Votre compte a été suspendu. Contactez le support.");
+  }
+
   return mapProfile(data, email);
 }
 

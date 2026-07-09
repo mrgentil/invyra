@@ -98,6 +98,7 @@ export interface Database {
           avatar_url: string | null;
           city_id: string | null;
           city_label: string | null;
+          status: "active" | "suspended";
           preferences: string[];
           created_at: string;
           updated_at: string;
