@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { COOKIE_NAME, parseCredentialsEdge, verifySessionTokenEdge } from "@/lib/auth-edge";
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/api/organizer-applications"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

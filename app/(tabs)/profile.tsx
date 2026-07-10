@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, Switch, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import { SectionTitle } from "@/components/ui/SectionTitle";
 import { LocationSelector } from "@/components/ui/LocationSelector";
 import { useThemeStore, useOnboardingStore, useFavoritesStore, useAuthStore } from "@/store";
 import { useUserTickets } from "@/hooks";
+import { useOrganizerStatus } from "@/hooks/useOrganizerStatus";
 
 const GUEST_AVATAR = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
 
@@ -106,7 +108,36 @@ export default function ProfileScreen() {
   const queryClient = useQueryClient();
   const userId = authUser?.id;
   const { data: tickets = [] } = useUserTickets(userId);
+  const { data: organizerStatus, refetch: refetchOrganizerStatus } = useOrganizerStatus(userId);
   const ticketCount = tickets.filter((ticket) => ticket.status === "active").length;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) void refetchOrganizerStatus();
+    }, [userId, refetchOrganizerStatus])
+  );
+
+  const isVerifiedOrganizer = organizerStatus?.status === "approved";
+
+  const organizerSubtitle =
+    organizerStatus?.status === "approved"
+      ? "Organisateur vérifié"
+      : organizerStatus?.status === "pending"
+        ? "Demande en cours d'examen"
+        : organizerStatus?.status === "rejected"
+          ? "Soumettre une nouvelle demande"
+          : "Publier vos événements sur Invyra";
+
+  const accountMenu = [
+    {
+      icon: "business-outline" as const,
+      label: organizerStatus?.status === "approved" ? "Espace organisateur" : "Devenir organisateur",
+      subtitle: organizerSubtitle,
+      route: "/become-organizer",
+      color: "#7C3AED",
+    },
+    ...menuItems,
+  ];
 
   const profileName = isAuthenticated && authUser ? authUser.name : "Invité";
   const profileEmail = isAuthenticated && authUser ? authUser.email : "Connectez-vous pour synchroniser vos billets";
@@ -208,14 +239,14 @@ export default function ProfileScreen() {
                     width: 24,
                     height: 24,
                     borderRadius: 12,
-                    backgroundColor: colors.primary.DEFAULT,
+                    backgroundColor: isVerifiedOrganizer ? colors.success.DEFAULT : colors.primary.DEFAULT,
                     alignItems: "center",
                     justifyContent: "center",
                     borderWidth: 2,
                     borderColor: colors.white,
                   }}
                 >
-                  <Ionicons name="checkmark" size={13} color={colors.white} />
+                  <Ionicons name={isVerifiedOrganizer ? "shield-checkmark" : "checkmark"} size={13} color={colors.white} />
                 </View>
               </View>
 
@@ -231,7 +262,7 @@ export default function ProfileScreen() {
                   }}
                 >
                   <Text style={{ fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.xs, color: colors.primary.DEFAULT }}>
-                    {isAuthenticated ? "Membre Invyra" : "Mode invité"}
+                    {isVerifiedOrganizer ? "Organisateur vérifié" : isAuthenticated ? "Membre Invyra" : "Mode invité"}
                   </Text>
                 </View>
                 <Text style={{ fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.xl, color: colors.text.primary }} numberOfLines={1}>
@@ -365,7 +396,7 @@ export default function ProfileScreen() {
               shadows.sm,
             ]}
           >
-            {menuItems.map((item, index) => (
+            {accountMenu.map((item, index) => (
               <MenuRow
                 key={item.label}
                 icon={item.icon}
@@ -373,7 +404,7 @@ export default function ProfileScreen() {
                 subtitle={item.subtitle}
                 color={item.color}
                 onPress={() => router.push(item.route as any)}
-                isLast={index === menuItems.length - 1}
+                isLast={index === accountMenu.length - 1}
               />
             ))}
           </View>

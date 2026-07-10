@@ -32,6 +32,7 @@ export interface Database {
           event_count: number;
           followers: number;
           verified: boolean;
+          user_id: string | null;
           created_at: string;
         };
         Insert: Omit<Database["public"]["Tables"]["organizers"]["Row"], "created_at" | "rating" | "event_count" | "followers" | "verified"> & {
@@ -99,6 +100,7 @@ export interface Database {
           city_id: string | null;
           city_label: string | null;
           status: "active" | "suspended";
+          expo_push_token: string | null;
           preferences: string[];
           created_at: string;
           updated_at: string;
@@ -109,6 +111,51 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      organizer_applications: {
+        Row: {
+          id: string;
+          user_id: string;
+          business_name: string;
+          email: string | null;
+          phone: string | null;
+          city: string | null;
+          bio: string | null;
+          status: "pending" | "approved" | "rejected";
+          rejection_reason: string | null;
+          organizer_id: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["organizer_applications"]["Row"], "id" | "created_at" | "updated_at" | "status"> & {
+          id?: string;
+          status?: Database["public"]["Tables"]["organizer_applications"]["Row"]["status"];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["organizer_applications"]["Insert"]>;
+        Relationships: [];
+      };
+      user_notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: "booking" | "reminder" | "promo" | "system";
+          title: string;
+          message: string;
+          read: boolean;
+          data: Json;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["user_notifications"]["Row"], "id" | "created_at" | "read" | "data"> & {
+          id?: string;
+          read?: boolean;
+          data?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_notifications"]["Insert"]>;
         Relationships: [];
       };
       favorites: {

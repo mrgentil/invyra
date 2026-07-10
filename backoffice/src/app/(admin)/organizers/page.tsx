@@ -1,5 +1,6 @@
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ListFilters, ListMeta } from "@/components/admin/ListFilters";
+import { OrganizerRowActions } from "@/components/admin/OrganizerRowActions";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Pagination } from "@/components/admin/Pagination";
 import { getPage, getParam, getRange, getTotalPages, type SearchParams } from "@/lib/pagination";
@@ -21,7 +22,9 @@ export default async function OrganizersPage({
 
   let query = supabase
     .from("organizers")
-    .select("id,name,email,phone,rating,event_count,followers,verified,created_at", { count: "exact" });
+    .select("id,name,email,phone,avatar_url,rating,event_count,followers,verified,created_at", {
+      count: "exact",
+    });
 
   if (q) query = query.or(`name.ilike.%${q}%,email.ilike.%${q}%,id.ilike.%${q}%`);
   if (verified === "true") query = query.eq("verified", true);
@@ -48,7 +51,12 @@ export default async function OrganizersPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Organisateurs" description="Organisateurs d'événements sur la plateforme." />
+      <PageHeader
+        title="Organisateurs"
+        description="Organisateurs d'événements sur la plateforme."
+        back={{ href: "/", label: "Retour au tableau de bord" }}
+        action={{ label: "Nouvel organisateur", href: "/organizers/new" }}
+      />
 
       <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm">
         <ListFilters
@@ -91,6 +99,7 @@ export default async function OrganizersPage({
                   <th className="px-6 py-3">Note</th>
                   <th className="px-6 py-3">Abonnés</th>
                   <th className="px-6 py-3">Statut</th>
+                  <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -98,9 +107,18 @@ export default async function OrganizersPage({
                   <tr key={org.id} className="transition hover:bg-zinc-50/80">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-sm font-bold text-white">
-                          {org.name.slice(0, 2).toUpperCase()}
-                        </div>
+                        {org.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={org.avatar_url}
+                            alt=""
+                            className="h-10 w-10 shrink-0 rounded-xl object-cover ring-1 ring-zinc-200"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-purple-600 text-sm font-bold text-white">
+                            {org.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
                         <div>
                           <p className="font-medium text-zinc-900">{org.name}</p>
                           <p className="font-mono text-xs text-zinc-400">{org.id}</p>
@@ -133,6 +151,15 @@ export default async function OrganizersPage({
                           Standard
                         </span>
                       )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <OrganizerRowActions
+                        id={org.id}
+                        name={org.name}
+                        email={org.email}
+                        phone={org.phone}
+                        verified={org.verified}
+                      />
                     </td>
                   </tr>
                 ))}

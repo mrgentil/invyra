@@ -37,6 +37,7 @@ import {
 } from "@/hooks";
 import { useLocationStore } from "@/store";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useUnreadNotificationCount } from "@/hooks/useNotifications";
 import { formatDate, formatPrice } from "@/utils";
 import { Event } from "@/types";
 
@@ -154,6 +155,7 @@ export default function HomeScreen() {
   const selectedCityId = useLocationStore((state) => state.selectedId);
   const authUser = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { data: unreadCount = 0 } = useUnreadNotificationCount(authUser?.id);
   const headerAvatar = isAuthenticated && authUser?.avatar ? authUser.avatar : "";
 
   const featuredQuery = useFeaturedEvents(selectedCityId);
@@ -246,19 +248,21 @@ export default function HomeScreen() {
                 }}
               >
                 <Ionicons name="notifications-outline" size={21} color={colors.text.primary} />
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 10,
-                    right: 11,
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: colors.danger.DEFAULT,
-                    borderWidth: 1.5,
-                    borderColor: colors.white,
-                  }}
-                />
+                {isAuthenticated && unreadCount > 0 ? (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 10,
+                      right: 11,
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: colors.danger.DEFAULT,
+                      borderWidth: 1.5,
+                      borderColor: colors.white,
+                    }}
+                  />
+                ) : null}
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => router.push("/(tabs)/profile")}

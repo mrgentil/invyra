@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IconCheck, IconCopy, IconId, IconPhone } from "./icons";
+import { IconCheck, IconCopy, IconId, IconMail, IconPhone } from "./icons";
 
 async function copyToClipboard(text: string) {
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -32,13 +32,21 @@ export function CopyTextButton({
 }: {
   value: string;
   label: string;
-  icon?: "copy" | "id" | "phone";
+  icon?: "copy" | "id" | "phone" | "mail";
   className?: string;
   disabled?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
-  const Icon = copied ? IconCheck : icon === "id" ? IconId : icon === "phone" ? IconPhone : IconCopy;
+  const Icon = copied
+    ? IconCheck
+    : icon === "id"
+      ? IconId
+      : icon === "phone"
+        ? IconPhone
+        : icon === "mail"
+          ? IconMail
+          : IconCopy;
 
   return (
     <button

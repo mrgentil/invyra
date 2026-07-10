@@ -10,6 +10,7 @@ import { LocationPickerSheet } from "@/components/modals/LocationPickerSheet";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { onAuthStateChange } from "@/services/supabase/auth";
 import { useAuthStore } from "@/store/useAuthStore";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { QUERY_KEYS } from "@/constants";
 
 const queryClient = new QueryClient({
@@ -21,6 +22,12 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function PushNotificationsSync() {
+  const userId = useAuthStore((state) => state.user?.id);
+  usePushNotifications(userId);
+  return null;
+}
 
 function AuthSessionSync() {
   const queryClient = useQueryClient();
@@ -73,6 +80,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <AuthSessionSync />
+        <PushNotificationsSync />
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -88,6 +96,7 @@ export default function RootLayout() {
           <Stack.Screen name="help" options={{ headerShown: false, animation: "slide_from_right" }} />
           <Stack.Screen name="about" options={{ headerShown: false, animation: "slide_from_right" }} />
           <Stack.Screen name="edit-profile" options={{ headerShown: false, animation: "slide_from_right" }} />
+          <Stack.Screen name="become-organizer" options={{ headerShown: false, animation: "slide_from_right" }} />
           <Stack.Screen name="auth/login" options={{ headerShown: false, animation: "fade" }} />
           <Stack.Screen name="auth/register" options={{ headerShown: false, animation: "fade" }} />
           <Stack.Screen name="auth/callback" options={{ headerShown: false, animation: "fade" }} />

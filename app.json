@@ -39,6 +39,13 @@
         {
           "locationWhenInUsePermission": "Invyra utilise votre position pour proposer des événements proches de vous."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#6366F1"
+        }
       ]
     ]
   }
